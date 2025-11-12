@@ -1,0 +1,57 @@
+useradd -m kingbase
+passwd kingbase 
+mkdir -p /kingbase/v9
+mkdir -p /kingbase/data
+chown -R kingbase:kingbase  /kingbase/v9
+chown -R kingbase:kingbase  /kingbase/data
+chmod 755 /kingbase/v9
+chmod 755 /kingbase/data
+mkdir -p /mnt/kingbase_iso
+#挂载金仓数据库镜像
+mount -o loop,ro /home/kylin/Downloads/KingbaseES_V009R001C002B0014_Lin64_install.iso /mnt/kingbase_iso
+
+su - kingbase # 切换到安装用户
+cd /mnt/kingbase_iso# 进入挂载点目录
+./setup.sh -i console  # 执行安装脚本，命令行安装
+
+/kingbase/v9/Server/bin/initdb -m mysql -U "system" -W -D "/kingbase/v9/data"
+/kingbase/v9/Server/bin/sys_ctl -D /kingbase/v9/data -l /kingbase/data/server.log start
+/kingbase/v9/Server/bin/sys_ctl -D /kingbase/v9/data/ stop
+
+su - root
+/opt/Kingbase/ES/V8/install/script/root.sh  #注册系统服务
+systemctl start|stop kingbase.service  #启动与停止
+
+cd /kingbase/v9/Server/bin
+./ksql -p 54321 -U system test  #连接数据库
+
+#替换证书
+cd /home/kylin
+mv license_V009R001C-开发版.dat  license.dat
+chown -R kingbase:kingbase  license.dat
+chmod +x  license.dat
+
+cd /kingbase/v9/KESRealPro/V009R001C010
+mv license.dat  license.dat.bak
+mv /home/kylin/license.dat ./
+
+cd /kingbase/v9
+rm -rf  license.dat
+ln -s /kingbase/v9/KESRealPro/V009R001C010/license.dat  license.dat 
+/kingbase/v9/Server/bin/sys_ctl -D /kingbase/v9/data -l /kingbase/data/server.log restart
+cd /kingbase/v9/Server/bin
+./ksql -p 54321 -U system test
+select current_date + get_license_validdays();
+select  get_license_validdays();
+
+/kingbase/v9/ClientTools/guitools/KDts/KDTS-WEB/bin/startup.sh #迁移工具
+ps -ef | grep kdts
+http://192.168.145.100:54523
+
+admin  123456&*
+kingbase  kingbase
+kingbase Kb_Di@2019
+
+
+
+
